@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Json } from '@/integrations/supabase/types';
 
 export interface NoteLocation {
   latitude: number;
@@ -71,17 +72,13 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (data) {
-          const parsedNotes = data.map(note => ({
+          const parsedNotes: Note[] = data.map(note => ({
             id: note.id,
             title: note.title,
-            content: note.content,
+            content: note.content || '',
             createdAt: new Date(note.created_at),
             updatedAt: new Date(note.updated_at),
-            location: note.location || {
-              latitude: 0,
-              longitude: 0,
-              name: 'Unknown Location'
-            },
+            location: parseLocation(note.location),
             tags: note.tags || [],
           }));
           
@@ -97,6 +94,43 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchNotes();
   }, [user, toast]);
 
+  // Helper function to safely parse location data
+  const parseLocation = (locationData: Json | null): NoteLocation => {
+    if (!locationData) {
+      return {
+        latitude: 0,
+        longitude: 0,
+        name: 'Unknown Location'
+      };
+    }
+    
+    try {
+      // Handle both string and object formats
+      if (typeof locationData === 'string') {
+        const parsed = JSON.parse(locationData);
+        return {
+          latitude: parsed.latitude || 0,
+          longitude: parsed.longitude || 0,
+          name: parsed.name || 'Unknown Location'
+        };
+      } else if (typeof locationData === 'object') {
+        return {
+          latitude: (locationData as any).latitude || 0,
+          longitude: (locationData as any).longitude || 0,
+          name: (locationData as any).name || 'Unknown Location'
+        };
+      }
+    } catch (e) {
+      console.error('Error parsing location data:', e);
+    }
+    
+    return {
+      latitude: 0,
+      longitude: 0,
+      name: 'Unknown Location'
+    };
+  };
+
   const addNote = async (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (!user) return;
     
@@ -104,11 +138,11 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase
         .from('notes')
         .insert({
-          user_id: user.id,
           title: note.title,
           content: note.content,
-          location: note.location,
+          location: note.location as unknown as Json,
           tags: note.tags,
+          user_id: user.id
         })
         .select()
         .single();
@@ -127,10 +161,10 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newNote: Note = {
           id: data.id,
           title: data.title,
-          content: data.content,
+          content: data.content || '',
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
-          location: data.location,
+          location: parseLocation(data.location),
           tags: data.tags || [],
         };
         
@@ -155,14 +189,13 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (updatedFields.title !== undefined) dbFields.title = updatedFields.title;
       if (updatedFields.content !== undefined) dbFields.content = updatedFields.content;
-      if (updatedFields.location !== undefined) dbFields.location = updatedFields.location;
+      if (updatedFields.location !== undefined) dbFields.location = updatedFields.location as unknown as Json;
       if (updatedFields.tags !== undefined) dbFields.tags = updatedFields.tags;
       
       const { error } = await supabase
         .from('notes')
         .update(dbFields)
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
         
       if (error) {
         console.error('Error updating note:', error);
@@ -198,8 +231,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase
         .from('notes')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
         
       if (error) {
         console.error('Error deleting note:', error);
