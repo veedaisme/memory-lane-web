@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Note } from '@/context/NoteContext';
@@ -81,7 +81,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
       )}
       
       <MapContainer
-        center={defaultCenter}
+        center={defaultCenter as L.LatLngExpression}
         zoom={defaultZoom}
         style={{ height: '100%', width: '100%' }}
         className="z-0"
@@ -94,7 +94,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
         {notesWithLocation.map((note) => (
           <Marker
             key={note.id}
-            position={[note.location.latitude, note.location.longitude]}
+            position={[note.location.latitude, note.location.longitude] as L.LatLngExpression}
             icon={customIcon}
             eventHandlers={{
               click: () => onNoteClick(note)
