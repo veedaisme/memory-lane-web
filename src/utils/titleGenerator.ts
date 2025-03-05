@@ -15,6 +15,13 @@ export async function generateTitleFromContent(content: string): Promise<string>
     return createFallbackTitle(content);
   }
 
+  // Check if content is too short for meaningful AI title generation
+  const minContentLength = AI_DEFAULTS.titleGeneration?.minContentLength || 50;
+  if (content.trim().length < minContentLength) {
+    console.log(`Content too short for AI title generation (${content.trim().length} chars < ${minContentLength} min chars)`);
+    return createFallbackTitle(content);
+  }
+
   try {
     // Get the active AI provider
     const activeProvider = aiService.getActiveProvider();
@@ -89,6 +96,10 @@ export async function generateTitleFromContent(content: string): Promise<string>
  */
 function createFallbackTitle(content: string): string {
   const trimmedContent = content.trim();
+  
+  if (!trimmedContent) {
+    return AI_DEFAULTS.titleGeneration?.fallbackTitle || 'Untitled Note';
+  }
   
   // Use first few words (up to 40 chars) as the title
   const words = trimmedContent.split(' ');

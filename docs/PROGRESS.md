@@ -236,6 +236,29 @@ This implementation provides a solid foundation for AI capabilities throughout t
 
 ## March 5, 2025 (Continued)
 
+### Improved AI Title Generation with Content Length Validation
+
+Enhanced the AI title generation feature to check if the content is long enough for meaningful title generation. This prevents AI from generating misleading or overly generic titles for very short content.
+
+#### Implementation Details:
+
+1. **Minimum Content Length Check**:
+   - Added a configuration option to set the minimum content length for AI title generation
+   - If content is shorter than the threshold, the system automatically falls back to a simple title
+   - Default threshold set to 50 characters to ensure sufficient context for title generation
+
+2. **Configuration Options**:
+   - Added `titleGeneration` settings to `AI_DEFAULTS` in the configuration
+   - Includes `minContentLength` parameter which defaults to 50 characters
+   - Added `fallbackTitle` parameter for consistent fallback handling
+
+3. **Improved Fallback Handling**:
+   - Enhanced the fallback title generation for empty content
+   - Preserves the existing fallback mechanism for longer content that fails AI processing
+   - Includes clear logging to identify when content is too short
+
+This enhancement improves title accuracy by ensuring the AI only generates titles when it has sufficient context, leading to more meaningful and appropriate titles for notes.
+
 ### Fixed OpenAI API Base URL Configuration
 
 Addressed an issue with the custom OpenAI API base URL not being properly applied due to a property naming discrepancy between our configuration and the OpenAI SDK.

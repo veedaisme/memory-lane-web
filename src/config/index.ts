@@ -39,7 +39,11 @@ export const AI_CONFIG = {
 export const AI_DEFAULTS = {
   maxTokens: 1000,
   temperature: 0.7,
-  systemMessage: 'You are a helpful AI assistant for the Memory Lane journal app. Provide concise, accurate responses.'
+  systemMessage: 'You are a helpful AI assistant for the Memory Lane journal app. Provide concise, accurate responses.',
+  titleGeneration: {
+    minContentLength: 75, // Minimum content length (in characters) required to generate a title
+    fallbackTitle: 'Untitled Note',
+  }
 };
 
 // Feature Flags
