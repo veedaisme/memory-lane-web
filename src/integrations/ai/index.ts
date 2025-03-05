@@ -6,7 +6,7 @@ export { OpenAIProvider } from './providers/openai.provider';
 export { GeminiProvider } from './providers/gemini.provider';
 
 // Export service and config
-export { AIService, aiService, AIProviderType } from './ai.service';
+export { AIService, aiService } from './ai.service';
 export { AI_CONFIG, AI_DEFAULTS } from './config';
 
 // Export a convenience function to initialize the AI service
