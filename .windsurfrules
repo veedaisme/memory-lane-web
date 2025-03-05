@@ -1,1 +1,2 @@
-log every meaningful progress toward the completeness of the app to /docs/PROGRESS.md
+1. on every development, always take a look at /docs to be consistent with design and guiding principal
+2. log every meaningful progress toward the completeness of the app to /docs/PROGRESS.md
