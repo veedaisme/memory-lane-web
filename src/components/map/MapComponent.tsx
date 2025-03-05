@@ -6,25 +6,46 @@ import { Note } from '@/context/NoteContext';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Mapbox token - in a real app, this should be stored in an environment variable
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZS1haS1tYXBib3giLCJhIjoiY2x5NXJqZ2plMXgwZDJrbzV0Y3hmZWV1dCJ9.I9qqbDX3jcHx9-Y0QJ4OjQ';
+// Placeholder token - will be replaced by the user input
+let MAPBOX_TOKEN = '';
 
 interface MapComponentProps {
   notes: Note[];
   onNoteClick: (note: Note) => void;
+  mapboxToken?: string;
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
+const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick, mapboxToken }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const markersRef = useRef<mapboxgl.Marker[]>([]);
   const mapInitializedRef = useRef<boolean>(false);
 
+  // Update token if provided
+  useEffect(() => {
+    if (mapboxToken) {
+      MAPBOX_TOKEN = mapboxToken;
+      // If we already tried to initialize the map but failed, try again with new token
+      if (error && mapContainer.current) {
+        setError(null);
+        initializeMap();
+      }
+    }
+  }, [mapboxToken, error]);
+
   // Function to initialize map
   const initializeMap = () => {
     if (!mapContainer.current || mapInitializedRef.current) return;
+    
+    // Don't try to initialize if no token is provided
+    if (!MAPBOX_TOKEN) {
+      setError('Please provide a Mapbox token to view the map');
+      setLoading(false);
+      return;
+    }
     
     try {
       // Set access token
@@ -50,8 +71,20 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
       // Handle map load
       map.current.on('load', () => {
         setLoading(false);
+        setError(null);
         mapInitializedRef.current = true;
         addMapMarkers();
+      });
+
+      // Handle map errors
+      map.current.on('error', (e) => {
+        console.error('Map error:', e);
+        if (e.error && e.error.status === 401) {
+          setError('Invalid Mapbox token. Please check your token and try again.');
+        } else {
+          setError('Error loading map. Please try again later.');
+        }
+        setLoading(false);
       });
 
       // Add attribution control in a less obtrusive position
@@ -61,11 +94,7 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
 
     } catch (error) {
       console.error('Error initializing map:', error);
-      toast({
-        title: 'Map Error',
-        description: 'There was an error loading the map. Please try again later.',
-        variant: 'destructive',
-      });
+      setError('Error initializing map. Please try again later.');
       setLoading(false);
     }
   };
@@ -147,18 +176,23 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
       markersRef.current = [];
       mapInitializedRef.current = false;
     };
-  }, [toast]);
+  }, []);
 
   // Add markers when notes change
   useEffect(() => {
     addMapMarkers();
-  }, [notes, loading, onNoteClick]);
+  }, [notes, onNoteClick]);
 
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
           <Loader2 className="h-8 w-8 animate-spin text-memorylane-accent" />
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/90 z-10 p-4">
+          <p className="text-red-500 mb-2 text-center">{error}</p>
         </div>
       )}
       <div ref={mapContainer} className="absolute inset-0" />
