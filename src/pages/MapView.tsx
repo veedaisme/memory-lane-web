@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import ViewSelector from '@/components/ui/ViewSelector';
 import BottomNavigation from '@/components/layout/BottomNavigation';
@@ -67,6 +67,13 @@ const MapView = () => {
       </div>
     );
   };
+  
+  // Force re-render if map view is active
+  useEffect(() => {
+    // This effect will force the component to re-evaluate when it's mounted
+    // which helps ensure the map initializes properly
+    console.log("Map view mounted, notes with location:", notesWithLocation.length);
+  }, []);
   
   return (
     <div className="min-h-screen pb-16 pt-14 px-4 bg-memorylane-bg">

@@ -11,9 +11,11 @@ export type Database = {
     Tables: {
       notes: {
         Row: {
+          capture_mode: Database["public"]["Enums"]["CAPTURE_MODE"]
           content: string | null
           created_at: string
           id: string
+          is_favorite: boolean
           location: Json | null
           tags: string[] | null
           title: string
@@ -21,9 +23,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          capture_mode?: Database["public"]["Enums"]["CAPTURE_MODE"]
           content?: string | null
           created_at?: string
           id?: string
+          is_favorite?: boolean
           location?: Json | null
           tags?: string[] | null
           title: string
@@ -31,9 +35,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          capture_mode?: Database["public"]["Enums"]["CAPTURE_MODE"]
           content?: string | null
           created_at?: string
           id?: string
+          is_favorite?: boolean
           location?: Json | null
           tags?: string[] | null
           title?: string
@@ -74,7 +80,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      CAPTURE_MODE: "quick" | "detailed" | "voice"
     }
     CompositeTypes: {
       [_ in never]: never

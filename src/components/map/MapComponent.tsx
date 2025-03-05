@@ -20,14 +20,17 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const mapInitializedRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    if (!mapContainer.current) return;
-
-    // Initialize map
-    mapboxgl.accessToken = MAPBOX_TOKEN;
+  // Function to initialize map
+  const initializeMap = () => {
+    if (!mapContainer.current || mapInitializedRef.current) return;
     
     try {
+      // Set access token
+      mapboxgl.accessToken = MAPBOX_TOKEN;
+      
+      // Create the map
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/light-v11',
@@ -47,6 +50,8 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
       // Handle map load
       map.current.on('load', () => {
         setLoading(false);
+        mapInitializedRef.current = true;
+        addMapMarkers();
       });
 
       // Add attribution control in a less obtrusive position
@@ -63,22 +68,12 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
       });
       setLoading(false);
     }
+  };
 
-    // Cleanup
-    return () => {
-      if (map.current) {
-        map.current.remove();
-      }
-      // Clean up markers
-      markersRef.current.forEach(marker => marker.remove());
-      markersRef.current = [];
-    };
-  }, [toast]);
-
-  // Add markers for notes
-  useEffect(() => {
-    if (!map.current || loading) return;
-
+  // Function to add markers to the map
+  const addMapMarkers = () => {
+    if (!map.current || !mapInitializedRef.current) return;
+    
     // Remove existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
@@ -136,6 +131,27 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
         maxZoom: 15
       });
     }
+  };
+
+  // Initialize map on component mount
+  useEffect(() => {
+    initializeMap();
+    
+    // Cleanup function
+    return () => {
+      if (map.current) {
+        map.current.remove();
+      }
+      // Clean up markers
+      markersRef.current.forEach(marker => marker.remove());
+      markersRef.current = [];
+      mapInitializedRef.current = false;
+    };
+  }, [toast]);
+
+  // Add markers when notes change
+  useEffect(() => {
+    addMapMarkers();
   }, [notes, loading, onNoteClick]);
 
   return (
