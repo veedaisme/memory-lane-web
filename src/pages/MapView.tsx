@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Header from '@/components/layout/Header';
 import ViewSelector from '@/components/ui/ViewSelector';
 import BottomNavigation from '@/components/layout/BottomNavigation';
