@@ -6,6 +6,7 @@ import {
 } from './types';
 import { OpenAIProvider } from './providers/openai.provider';
 import { GeminiProvider } from './providers/gemini.provider';
+import { AI_CONFIG } from '@/config';
 
 /**
  * Available AI provider types
@@ -19,12 +20,13 @@ export type AIProviderType = 'openai' | 'gemini';
 export class AIService {
   private static instance: AIService;
   private providers: Map<string, AIProvider> = new Map();
-  private activeProvider: AIProvider | null = null;
+  private activeProvider: string = AI_CONFIG.defaultProvider;
+  private initialized: boolean = false;
   
   private constructor() {
     // Register all available providers
-    this.registerProvider(new OpenAIProvider());
-    this.registerProvider(new GeminiProvider());
+    this.registerProvider('openai', new OpenAIProvider());
+    this.registerProvider('gemini', new GeminiProvider());
   }
   
   /**
@@ -40,29 +42,27 @@ export class AIService {
   /**
    * Register a new AI provider
    */
-  public registerProvider(provider: AIProvider): void {
-    this.providers.set(provider.id, provider);
+  public registerProvider(name: string, provider: AIProvider): void {
+    this.providers.set(name, provider);
+    console.log(`AI Provider registered: ${name}`);
   }
   
   /**
    * Set the active AI provider by type and initialize it with config
    */
-  public useProvider(type: AIProviderType, config: Record<string, unknown>): void {
-    const provider = this.providers.get(type);
-    
-    if (!provider) {
-      throw new Error(`AI provider '${type}' not found. Available providers: ${Array.from(this.providers.keys()).join(', ')}`);
+  public setActiveProvider(name: string): void {
+    if (!this.providers.has(name)) {
+      throw new Error(`AI provider '${name}' not found. Available providers: ${Array.from(this.providers.keys()).join(', ')}`);
     }
-    
-    provider.initialize(config);
-    this.activeProvider = provider;
+    this.activeProvider = name;
+    console.log(`Active AI Provider set to: ${name}`);
   }
   
   /**
-   * Get the currently active provider
+   * Get the active AI provider
    */
-  public getActiveProvider(): AIProvider | null {
-    return this.activeProvider;
+  public getActiveProvider(): AIProvider | undefined {
+    return this.providers.get(this.activeProvider);
   }
   
   /**
@@ -73,23 +73,124 @@ export class AIService {
   }
   
   /**
-   * Send a chat completion request to the active provider
+   * Get all registered AI providers
+   * @returns Map of all registered providers
+   */
+  public getProviders(): Map<string, AIProvider> {
+    return this.providers;
+  }
+  
+  /**
+   * Get the name of the active provider
+   * @returns The name of the active provider
+   */
+  public getActiveProviderName(): string {
+    return this.activeProvider;
+  }
+  
+  /**
+   * Check if the service has been initialized
+   */
+  public isInitialized(): boolean {
+    return this.initialized;
+  }
+  
+  /**
+   * Initialize all registered AI providers with centralized config
+   */
+  public async initializeProviders(): Promise<boolean> {
+    let hasInitializedAny = false;
+    
+    // Initialize OpenAI if registered
+    const openaiProvider = this.providers.get('openai');
+    if (openaiProvider) {
+      try {
+        // Check if API key is available
+        if (!AI_CONFIG.openai.apiKey) {
+          console.warn('OpenAI provider initialization skipped: No API key provided');
+        } else {
+          // Debug log the configuration
+          console.log('Attempting to initialize OpenAI provider with config:', {
+            apiKey: AI_CONFIG.openai.apiKey ? '(set)' : '(not set)',
+            model: AI_CONFIG.openai.model,
+            organization: AI_CONFIG.openai.organization,
+            baseUrl: AI_CONFIG.openai.baseUrl
+          });
+          
+          await openaiProvider.initialize(AI_CONFIG.openai);
+          console.log('AI Provider initialized: openai');
+          hasInitializedAny = true;
+        }
+      } catch (error) {
+        console.error('Failed to initialize AI Provider "openai":', error);
+      }
+    }
+    
+    // Initialize Gemini if registered
+    const geminiProvider = this.providers.get('gemini');
+    if (geminiProvider) {
+      try {
+        // Check if API key is available
+        if (!AI_CONFIG.gemini.apiKey) {
+          console.warn('Gemini provider initialization skipped: No API key provided');
+        } else {
+          await geminiProvider.initialize(AI_CONFIG.gemini);
+          console.log('AI Provider initialized: gemini');
+          hasInitializedAny = true;
+        }
+      } catch (error) {
+        console.error('Failed to initialize AI Provider "gemini":', error);
+      }
+    }
+    
+    // Mark the service as initialized if at least one provider was successfully initialized
+    this.initialized = hasInitializedAny;
+    
+    return hasInitializedAny;
+  }
+  
+  /**
+   * Send a chat completion request to the active AI provider
    */
   public async chatCompletion(
     messages: ChatMessage[],
     options?: AIRequestOptions
   ): Promise<AIResponse> {
-    if (!this.activeProvider) {
-      throw new Error('No active AI provider set. Call useProvider() first.');
+    const provider = this.getActiveProvider();
+    
+    if (!provider) {
+      throw new Error('No active AI provider set. Call setActiveProvider() first.');
     }
     
-    if (!this.activeProvider.isInitialized()) {
-      throw new Error(`Provider ${this.activeProvider.name} is not initialized with API keys.`);
+    // Try to initialize the provider if it's not already initialized
+    if (!provider.isInitialized()) {
+      if (this.activeProvider === 'openai') {
+        if (!AI_CONFIG.openai.apiKey) {
+          throw new Error('OpenAI API key is missing. Please set VITE_OPENAI_API_KEY in your environment variables.');
+        }
+        await provider.initialize(AI_CONFIG.openai);
+      } else if (this.activeProvider === 'gemini') {
+        if (!AI_CONFIG.gemini.apiKey) {
+          throw new Error('Gemini API key is missing. Please set VITE_GEMINI_API_KEY in your environment variables.');
+        }
+        await provider.initialize(AI_CONFIG.gemini);
+      }
     }
     
-    return this.activeProvider.chatCompletion(messages, options);
+    return provider.chatCompletion(messages, options);
   }
 }
 
-// Export a singleton instance
-export const aiService = AIService.getInstance();
+// Create the singleton instance
+const aiService = AIService.getInstance();
+
+// Initialize with the default provider from config
+aiService.setActiveProvider(AI_CONFIG.defaultProvider);
+
+// Initialize providers
+aiService.initializeProviders().catch(error => {
+  console.error('Failed to initialize AI providers:', error);
+});
+
+// Export the singleton instance
+export { aiService };

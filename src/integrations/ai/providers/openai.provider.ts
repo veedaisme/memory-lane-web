@@ -8,12 +8,14 @@ import {
 
 /**
  * OpenAI-specific configuration options
+ * Note: We use baseUrl (lowercase URL) to match our config convention,
+ * but the OpenAI SDK expects baseURL (uppercase URL)
  */
 export interface OpenAIConfig {
   apiKey: string;
   organization?: string;
   model?: string;
-  baseURL?: string;
+  baseUrl?: string; // Our config uses lowercase 'url'
 }
 
 /**
@@ -38,17 +40,33 @@ export class OpenAIProvider implements AIProvider {
    * Initialize the OpenAI client with API key and configuration
    */
   public initialize(config: OpenAIConfig): void {
-    const { apiKey, organization, model, baseURL } = config;
+    const { apiKey, organization, model, baseUrl } = config;
     
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
     
-    this.client = new OpenAI({
-      apiKey,
-      organization,
-      baseURL
+    // Log the configuration for debugging
+    console.log('Initializing OpenAI provider with:', {
+      apiKey: apiKey ? '(set)' : '(not set)',
+      organization: organization || '(not set)',
+      model: model || this.defaultModel,
+      baseUrl: baseUrl || '(default)'
     });
+    
+    // Create the OpenAI client with the proper configuration
+    // Note: OpenAI SDK expects baseURL with uppercase URL
+    const clientConfig: any = {
+      apiKey,
+      dangerouslyAllowBrowser: true // Required for browser environments
+    };
+    
+    // Only add defined properties
+    if (organization) clientConfig.organization = organization;
+    if (baseUrl) clientConfig.baseURL = baseUrl; // Convert to uppercase URL format expected by SDK
+    
+    // Create the client with our properly mapped config
+    this.client = new OpenAI(clientConfig);
     
     if (model) {
       this.model = model;
@@ -84,6 +102,9 @@ export class OpenAIProvider implements AIProvider {
     }
     
     try {
+      // Log request details for debugging
+      console.log('Sending OpenAI request to model:', this.model);
+      
       const response = await this.client!.chat.completions.create({
         model: this.model,
         messages: this.mapMessages(messages),

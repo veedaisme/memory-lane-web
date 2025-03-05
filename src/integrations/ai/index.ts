@@ -16,21 +16,27 @@ import { AI_CONFIG } from './config';
 /**
  * Initialize the AI service with the default provider from config
  * This is a convenience function that can be called at app startup
+ * @returns A promise that resolves when initialization is complete
  */
-export function initializeAIService(): void {
+export async function initializeAIService(): Promise<boolean> {
   const defaultProvider = AI_CONFIG.defaultProvider;
   
   try {
-    if (defaultProvider === 'openai') {
-      aiService.useProvider('openai', AI_CONFIG.openai);
-    } else if (defaultProvider === 'gemini') {
-      aiService.useProvider('gemini', AI_CONFIG.gemini);
+    // Set the active provider
+    aiService.setActiveProvider(defaultProvider);
+    
+    // Initialize all providers
+    const initializationResult = await aiService.initializeProviders();
+    
+    if (initializationResult) {
+      console.log(`AI service initialized with ${defaultProvider} provider.`);
     } else {
-      console.warn(`Unknown default AI provider: ${defaultProvider}`);
+      console.warn(`AI service failed to initialize any providers. AI features may be unavailable.`);
     }
     
-    console.log(`AI service initialized with ${defaultProvider} provider.`);
+    return initializationResult;
   } catch (error) {
     console.error('Failed to initialize AI service:', error);
+    return false;
   }
 }

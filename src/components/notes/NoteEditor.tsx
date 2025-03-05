@@ -1,8 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { MapPin, Tag, X, Save } from 'lucide-react';
 import { useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { Note, NoteLocation } from '@/context/NoteContext';
+import { generateTitleFromContent } from '@/utils/titleGenerator';
+import { useToast } from '@/hooks/use-toast';
 
 interface NoteEditorProps {
   initialNote?: Note;
@@ -24,9 +25,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [location, setLocation] = useState<NoteLocation>(
     initialNote?.location || currentLocation
   );
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   
   const navigate = useNavigate();
   const routerLocation = useRouterLocation();
+  const { toast } = useToast();
   
   // Auto-focus content field when component mounts
   useEffect(() => {
@@ -36,21 +39,52 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   }, []);
   
-  const handleSave = () => {
+  const handleSave = async () => {
     // Don't save empty notes
     if (!content.trim()) {
       onCancel();
       return;
     }
     
-    onSave({
-      title,
-      content,
-      tags,
-      location,
-    });
-    
-    navigate(-1);
+    try {
+      // If title is empty, generate one with AI
+      let finalTitle = title;
+      if (!title.trim()) {
+        setIsGeneratingTitle(true);
+        finalTitle = await generateTitleFromContent(content);
+        setTitle(finalTitle);
+        setIsGeneratingTitle(false);
+      }
+      
+      onSave({
+        title: finalTitle,
+        content,
+        tags,
+        location,
+      });
+      
+      navigate(-1);
+    } catch (error) {
+      console.error('Error saving note:', error);
+      setIsGeneratingTitle(false);
+      
+      // Fallback: if title generation fails but content exists, use first few words
+      if (!title.trim()) {
+        const words = content.trim().split(' ');
+        const truncatedContent = words.slice(0, 5).join(' ') + (words.length > 5 ? '...' : '');
+        setTitle(truncatedContent);
+      }
+      
+      // Save with whatever title we have
+      onSave({
+        title: title || content.substring(0, 40) + '...',
+        content,
+        tags,
+        location,
+      });
+      
+      navigate(-1);
+    }
   };
   
   const handleAddTag = () => {
@@ -90,10 +124,20 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           </button>
           <button 
             onClick={handleSave}
-            className="px-4 py-2 rounded-full bg-memorylane-accent text-white font-medium text-sm flex items-center"
+            disabled={isGeneratingTitle}
+            className="px-4 py-2 rounded-full bg-memorylane-accent text-white font-medium text-sm flex items-center disabled:opacity-75"
           >
-            <Save size={16} className="mr-1" />
-            Save
+            {isGeneratingTitle ? (
+              <>
+                <span className="mr-2">Thinking</span>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              </>
+            ) : (
+              <>
+                <Save size={16} className="mr-1" />
+                Save
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -102,7 +146,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         <input
           type="text"
           id="note-title"
-          placeholder="Add title"
+          placeholder="Add title (or leave empty for AI-generated title)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full text-xl font-semibold mb-4 bg-transparent outline-none border-none placeholder-memorylane-textTertiary"
