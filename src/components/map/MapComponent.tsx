@@ -1,10 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Note } from '@/context/NoteContext';
 import { Loader2 } from 'lucide-react';
 import L from 'leaflet';
+import MarkerClusterGroup from '@changey/react-leaflet-markercluster';
+import '@changey/react-leaflet-markercluster/dist/styles.min.css';
 
 // Fix Leaflet default icon issue
 // This is needed because Leaflet's default icons reference content from the server
@@ -72,6 +73,15 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
     note => note.location && note.location.latitude && note.location.longitude
   );
   
+  // Marker cluster group options
+  const clusterOptions = {
+    chunkedLoading: true,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: true,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 50
+  };
+  
   return (
     <div className="relative w-full h-full rounded-lg overflow-hidden">
       {loading && (
@@ -91,23 +101,25 @@ const MapComponent: React.FC<MapComponentProps> = ({ notes, onNoteClick }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {notesWithLocation.map((note) => (
-          <Marker
-            key={note.id}
-            position={[note.location.latitude, note.location.longitude] as L.LatLngExpression}
-            icon={customIcon}
-            eventHandlers={{
-              click: () => onNoteClick(note)
-            }}
-          >
-            <Popup>
-              <div className="p-1">
-                <h3 className="font-semibold">{note.title || 'Untitled Note'}</h3>
-                <p className="text-sm text-gray-600">{note.location.name}</p>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        <MarkerClusterGroup {...clusterOptions}>
+          {notesWithLocation.map((note) => (
+            <Marker
+              key={note.id}
+              position={[note.location.latitude, note.location.longitude] as L.LatLngExpression}
+              icon={customIcon}
+              eventHandlers={{
+                click: () => onNoteClick(note)
+              }}
+            >
+              <Popup>
+                <div className="p-1">
+                  <h3 className="font-semibold">{note.title || 'Untitled Note'}</h3>
+                  <p className="text-sm text-gray-600">{note.location.name}</p>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MarkerClusterGroup>
         
         <MapBounds notes={notesWithLocation} />
       </MapContainer>
