@@ -1,4 +1,3 @@
-
 // AI service types
 
 /**
@@ -36,25 +35,6 @@ export interface AIResponse {
 }
 
 /**
- * Embedding request options
- */
-export interface EmbeddingRequestOptions {
-  model?: string;
-  dimensions?: number;
-}
-
-/**
- * Embedding response from AI services
- */
-export interface EmbeddingResponse {
-  embedding: number[];
-  usage?: {
-    promptTokens?: number;
-    totalTokens?: number;
-  };
-}
-
-/**
  * Error returned from AI services
  */
 export interface AIError {
@@ -84,17 +64,6 @@ export interface AIProvider {
     messages: ChatMessage[],
     options?: AIRequestOptions
   ): Promise<AIResponse>;
-  
-  /**
-   * Generate vector embeddings for text
-   * @param text The text to generate embeddings for
-   * @param options Request options specific to this provider
-   * @returns Promise resolving to the embedding response
-   */
-  createEmbedding?(
-    text: string,
-    options?: EmbeddingRequestOptions
-  ): Promise<EmbeddingResponse>;
   
   /**
    * Initialize the provider with API keys and configuration

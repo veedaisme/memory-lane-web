@@ -1,11 +1,8 @@
-
 import {
   AIProvider, 
   AIRequestOptions, 
   AIResponse, 
-  ChatMessage,
-  EmbeddingRequestOptions,
-  EmbeddingResponse
+  ChatMessage 
 } from './types';
 import { OpenAIProvider } from './providers/openai.provider';
 import { GeminiProvider } from './providers/gemini.provider';
@@ -181,38 +178,6 @@ export class AIService {
     }
     
     return provider.chatCompletion(messages, options);
-  }
-
-  /**
-   * Generate vector embeddings for text using the active provider
-   * @param text The text to generate embeddings for
-   * @param options Request options for the embedding
-   * @returns Promise resolving to embedding vector
-   */
-  public async createEmbedding(
-    text: string,
-    options?: EmbeddingRequestOptions
-  ): Promise<EmbeddingResponse> {
-    // Use OpenAI for embeddings as it's the most widely supported
-    const provider = this.providers.get('openai');
-    
-    if (!provider) {
-      throw new Error('OpenAI provider not found for embeddings generation.');
-    }
-    
-    if (!provider.createEmbedding) {
-      throw new Error('The selected provider does not support embeddings generation.');
-    }
-    
-    // Try to initialize the provider if it's not already initialized
-    if (!provider.isInitialized()) {
-      if (!AI_CONFIG.openai.apiKey) {
-        throw new Error('OpenAI API key is missing. Please set VITE_OPENAI_API_KEY in your environment variables.');
-      }
-      await provider.initialize(AI_CONFIG.openai);
-    }
-    
-    return provider.createEmbedding(text, options);
   }
 }
 

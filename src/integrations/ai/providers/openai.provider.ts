@@ -1,156 +1,132 @@
-
 import OpenAI from 'openai';
 import {
   AIProvider,
   AIRequestOptions,
   AIResponse,
-  ChatMessage,
-  EmbeddingRequestOptions,
-  EmbeddingResponse
+  ChatMessage
 } from '../types';
 
 /**
- * OpenAI provider implementation
+ * OpenAI-specific configuration options
+ * Note: We use baseUrl (lowercase URL) to match our config convention,
+ * but the OpenAI SDK expects baseURL (uppercase URL)
+ */
+export interface OpenAIConfig {
+  apiKey: string;
+  organization?: string;
+  model?: string;
+  baseUrl?: string; // Our config uses lowercase 'url'
+}
+
+/**
+ * Implementation of the AI provider strategy for OpenAI
  */
 export class OpenAIProvider implements AIProvider {
   public readonly id = 'openai';
   public readonly name = 'OpenAI';
   
   private client: OpenAI | null = null;
-  private defaultModel: string = 'gpt-4o-mini';
-  private embeddingModel: string = 'text-embedding-3-small';
-  private initialized: boolean = false;
+  private defaultModel = 'gpt-3.5-turbo';
+  private model: string;
+  
+  constructor(config?: OpenAIConfig) {
+    this.model = config?.model || this.defaultModel;
+    if (config) {
+      this.initialize(config);
+    }
+  }
   
   /**
-   * Initialize the OpenAI provider with API key and optional organization
+   * Initialize the OpenAI client with API key and configuration
    */
-  initialize(config: Record<string, unknown>): void {
-    // Check for required configuration
-    const apiKey = config.apiKey as string;
+  public initialize(config: OpenAIConfig): void {
+    const { apiKey, organization, model, baseUrl } = config;
+    
     if (!apiKey) {
       throw new Error('OpenAI API key is required');
     }
     
-    // Extract optional configuration
-    const organization = config.organization as string;
-    const baseUrl = config.baseUrl as string;
-    const model = config.model as string;
+    // Log the configuration for debugging
+    console.log('Initializing OpenAI provider with:', {
+      apiKey: apiKey ? '(set)' : '(not set)',
+      organization: organization || '(not set)',
+      model: model || this.defaultModel,
+      baseUrl: baseUrl || '(default)'
+    });
     
-    // Set default model if provided
-    if (model) {
-      this.defaultModel = model;
-    }
-    
-    // Configure client
-    const clientConfig: OpenAI.ClientOptions = {
+    // Create the OpenAI client with the proper configuration
+    // Note: OpenAI SDK expects baseURL with uppercase URL
+    const clientConfig: any = {
       apiKey,
+      dangerouslyAllowBrowser: true // Required for browser environments
     };
     
-    // Add optional configuration if provided
+    // Only add defined properties
     if (organization) clientConfig.organization = organization;
-    if (baseUrl) clientConfig.baseURL = baseUrl;
+    if (baseUrl) clientConfig.baseURL = baseUrl; // Convert to uppercase URL format expected by SDK
     
-    // Required for browser environments
-    clientConfig.dangerouslyAllowBrowser = true;
-    
-    // Create the client
+    // Create the client with our properly mapped config
     this.client = new OpenAI(clientConfig);
-    this.initialized = true;
+    
+    if (model) {
+      this.model = model;
+    }
   }
   
   /**
-   * Check if the provider is properly initialized
+   * Check if the provider has been initialized with API key
    */
-  isInitialized(): boolean {
-    return this.initialized && this.client !== null;
+  public isInitialized(): boolean {
+    return this.client !== null;
   }
   
   /**
-   * Convert messages to OpenAI format
+   * Convert generic chat messages to OpenAI-specific format
    */
-  private convertMessages(messages: ChatMessage[]): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-    return messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
+  private mapMessages(messages: ChatMessage[]): OpenAI.Chat.ChatCompletionMessageParam[] {
+    return messages.map(message => ({
+      role: message.role,
+      content: message.content
     }));
   }
   
   /**
    * Send a chat completion request to OpenAI
    */
-  async chatCompletion(
+  public async chatCompletion(
     messages: ChatMessage[],
     options?: AIRequestOptions
   ): Promise<AIResponse> {
     if (!this.isInitialized()) {
-      throw new Error('OpenAI provider not initialized');
+      throw new Error('OpenAI provider not initialized. Call initialize() first.');
     }
     
-    // Extract options with defaults
-    const maxTokens = options?.maxTokens || undefined;
-    const temperature = options?.temperature ?? 0.7;
-    const stopSequences = options?.stopSequences || undefined;
-    
     try {
+      // Log request details for debugging
+      console.log('Sending OpenAI request to model:', this.model);
+      
       const response = await this.client!.chat.completions.create({
-        model: this.defaultModel,
-        messages: this.convertMessages(messages),
-        max_tokens: maxTokens,
-        temperature,
-        stop: stopSequences
+        model: this.model,
+        messages: this.mapMessages(messages),
+        max_tokens: options?.maxTokens,
+        temperature: options?.temperature,
+        stop: options?.stopSequences,
       });
       
-      // Extract the response text
-      const text = response.choices[0]?.message?.content || '';
+      const responseMessage = response.choices[0].message;
       
-      // Extract usage if available
-      const usage = response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens
-      } : undefined;
-      
-      return { text, usage };
+      return {
+        text: responseMessage.content || '',
+        usage: {
+          promptTokens: response.usage?.prompt_tokens,
+          completionTokens: response.usage?.completion_tokens,
+          totalTokens: response.usage?.total_tokens
+        }
+      };
     } catch (error: any) {
-      console.error('OpenAI API Error:', error);
-      throw new Error(`OpenAI API Error: ${error.message || 'Unknown error'}`);
-    }
-  }
-  
-  /**
-   * Generate vector embeddings for text
-   */
-  async createEmbedding(
-    text: string,
-    options?: EmbeddingRequestOptions
-  ): Promise<EmbeddingResponse> {
-    if (!this.isInitialized()) {
-      throw new Error('OpenAI provider not initialized');
-    }
-    
-    // Use the specified model or default to text-embedding-3-small
-    const model = options?.model || this.embeddingModel;
-    
-    try {
-      const response = await this.client!.embeddings.create({
-        model,
-        input: text,
-        dimensions: options?.dimensions
-      });
-      
-      // Extract the first embedding (we only sent one input)
-      const embedding = response.data[0]?.embedding || [];
-      
-      // Extract usage if available
-      const usage = response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        totalTokens: response.usage.total_tokens
-      } : undefined;
-      
-      return { embedding, usage };
-    } catch (error: any) {
-      console.error('OpenAI Embedding API Error:', error);
-      throw new Error(`OpenAI Embedding API Error: ${error.message || 'Unknown error'}`);
+      const errorMessage = error.message || 'Unknown error occurred with OpenAI';
+      console.error(`OpenAI API error: ${errorMessage}`);
+      throw new Error(`OpenAI error: ${errorMessage}`);
     }
   }
 }

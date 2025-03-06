@@ -1,4 +1,3 @@
-
 // Export types
 export * from './types';
 
@@ -9,9 +8,6 @@ export { GeminiProvider } from './providers/gemini.provider';
 // Export service and config
 export { AIService, aiService } from './ai.service';
 export { AI_CONFIG, AI_DEFAULTS } from './config';
-
-// Export utilities
-export { generateEmbeddingFromContent } from '@/utils/embeddingGenerator';
 
 // Export a convenience function to initialize the AI service
 import { aiService } from './ai.service';
