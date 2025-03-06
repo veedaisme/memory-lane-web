@@ -1,15 +1,23 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/layout/Header';
 import ViewSelector from '@/components/ui/ViewSelector';
 import BottomNavigation from '@/components/layout/BottomNavigation';
-import { useNavigate } from 'react-router-dom';
 import { Network } from 'lucide-react';
-import { useNotes } from '@/context/NoteContext';
+import { Note, NoteLocation, useNotes } from '@/context/NoteContext';
+import NoteEditorModal from '@/components/notes/NoteEditorModal';
+import { useLocation } from '@/hooks/useLocation';
 
 const GraphView = () => {
-  const navigate = useNavigate();
-  const { notes, loading } = useNotes();
+  const { notes, loading, addNote, updateNote } = useNotes();
+  const { latitude, longitude, name } = useLocation();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<Note | undefined>(undefined);
+  
+  const currentLocation: NoteLocation = {
+    latitude,
+    longitude,
+    name
+  };
   
   const viewOptions = [
     { label: 'Timeline', path: '/' },
@@ -18,7 +26,21 @@ const GraphView = () => {
   ];
   
   const handleCreateNote = () => {
-    navigate('/editor');
+    setSelectedNote(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleNoteClick = (note: Note) => {
+    setSelectedNote(note);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveNote = (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (selectedNote) {
+      updateNote(selectedNote.id, noteData);
+    } else {
+      addNote(noteData);
+    }
   };
   
   return (
@@ -44,6 +66,14 @@ const GraphView = () => {
       </div>
       
       <BottomNavigation onFabClick={handleCreateNote} />
+      
+      <NoteEditorModal 
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        initialNote={selectedNote}
+        currentLocation={currentLocation}
+        onSave={handleSaveNote}
+      />
     </div>
   );
 };

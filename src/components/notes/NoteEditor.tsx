@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Tag, X, Save } from 'lucide-react';
-import { useLocation as useRouterLocation, useNavigate } from 'react-router-dom';
 import { Note, NoteLocation } from '@/context/NoteContext';
 import { generateTitleFromContent } from '@/utils/titleGenerator';
 import { useToast } from '@/hooks/use-toast';
@@ -27,8 +26,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   );
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   
-  const navigate = useNavigate();
-  const routerLocation = useRouterLocation();
   const { toast } = useToast();
   
   // Auto-focus content field when component mounts
@@ -62,8 +59,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         tags,
         location,
       });
-      
-      navigate(-1);
     } catch (error) {
       console.error('Error saving note:', error);
       setIsGeneratingTitle(false);
@@ -82,8 +77,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         tags,
         location,
       });
-      
-      navigate(-1);
     }
   };
   

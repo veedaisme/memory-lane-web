@@ -1,16 +1,24 @@
-
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import BottomNavigation from '@/components/layout/BottomNavigation';
 import ViewSelector from '@/components/ui/ViewSelector';
 import NoteCard from '@/components/notes/NoteCard';
-import { useNotes, Note } from '@/context/NoteContext';
+import { useNotes, Note, NoteLocation } from '@/context/NoteContext';
 import { BookOpen } from 'lucide-react';
+import NoteEditorModal from '@/components/notes/NoteEditorModal';
+import { useLocation } from '@/hooks/useLocation';
 
 const Index = () => {
-  const navigate = useNavigate();
-  const { notes, loading } = useNotes();
+  const { notes, loading, addNote, updateNote } = useNotes();
+  const { latitude, longitude, name } = useLocation();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<Note | undefined>(undefined);
+  
+  const currentLocation: NoteLocation = {
+    latitude,
+    longitude,
+    name
+  };
   
   const viewOptions = [
     { label: 'Timeline', path: '/' },
@@ -19,11 +27,21 @@ const Index = () => {
   ];
   
   const handleCreateNote = () => {
-    navigate('/editor');
+    setSelectedNote(undefined);
+    setIsModalOpen(true);
   };
   
   const handleNoteClick = (note: Note) => {
-    navigate(`/editor/${note.id}`);
+    setSelectedNote(note);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveNote = (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (selectedNote) {
+      updateNote(selectedNote.id, noteData);
+    } else {
+      addNote(noteData);
+    }
   };
   
   const renderEmptyState = () => (
@@ -70,6 +88,14 @@ const Index = () => {
       </div>
       
       <BottomNavigation onFabClick={handleCreateNote} />
+
+      <NoteEditorModal 
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        initialNote={selectedNote}
+        currentLocation={currentLocation}
+        onSave={handleSaveNote}
+      />
     </div>
   );
 };

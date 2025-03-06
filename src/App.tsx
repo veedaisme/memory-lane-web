@@ -9,7 +9,6 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { useEffect, useState } from "react";
 import { initializeAIService } from "./integrations/ai";
 import Index from "./pages/Index";
-import Editor from "./pages/Editor";
 import MapView from "./pages/MapView";
 import GraphView from "./pages/GraphView";
 import Auth from "./pages/Auth";
@@ -56,16 +55,6 @@ const App = () => (
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Index />
-                  </ProtectedRoute>
-                } />
-                <Route path="/editor" element={
-                  <ProtectedRoute>
-                    <Editor />
-                  </ProtectedRoute>
-                } />
-                <Route path="/editor/:id" element={
-                  <ProtectedRoute>
-                    <Editor />
                   </ProtectedRoute>
                 } />
                 <Route path="/map" element={
