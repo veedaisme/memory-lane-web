@@ -47,6 +47,17 @@ export interface AIError {
 /**
  * Abstract interface that all AI provider strategies must implement
  */
+/**
+ * Response for embedding requests
+ */
+export interface EmbeddingResponse {
+  embedding: number[];
+  usage?: {
+    promptTokens?: number;
+    totalTokens?: number;
+  };
+}
+
 export interface AIProvider {
   // Unique identifier for the provider
   readonly id: string;
@@ -64,6 +75,13 @@ export interface AIProvider {
     messages: ChatMessage[],
     options?: AIRequestOptions
   ): Promise<AIResponse>;
+  
+  /**
+   * Generate embedding vector for a text input
+   * @param text Text to generate embedding for
+   * @returns Promise resolving to the embedding vector
+   */
+  generateEmbedding?(text: string): Promise<EmbeddingResponse>;
   
   /**
    * Initialize the provider with API keys and configuration

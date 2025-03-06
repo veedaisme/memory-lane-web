@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Json } from '@/integrations/supabase/types';
+import { generateNoteEmbedding, storeNoteEmbedding } from '@/utils/embeddingUtils';
 
 export interface NoteLocation {
   latitude: number;
@@ -135,6 +136,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     try {
+      // Step 1: Create the note without embedding first
       const { data, error } = await supabase
         .from('notes')
         .insert({
@@ -174,6 +176,35 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: 'Note saved',
           description: 'Your memory has been saved successfully.',
         });
+        
+        // Step 2: Generate and store the embedding asynchronously
+        try {
+          console.log('Starting embedding generation for note:', data.id);
+          
+          const embedding = await generateNoteEmbedding({
+            title: note.title,
+            content: note.content
+          });
+          
+          console.log('Embedding generated successfully:', {
+            noteId: data.id,
+            embeddingLength: embedding.length,
+            sampleValues: embedding.slice(0, 3) // Log first few values for debugging
+          });
+          
+          await storeNoteEmbedding(data.id, embedding);
+          console.log('Embedding generated and stored for note:', data.id);
+        } catch (embeddingError) {
+          console.error('Error generating or storing embedding:', embeddingError);
+          // Don't show error to user as the note was saved successfully
+          // But log detailed error for debugging
+          if (embeddingError instanceof Error) {
+            console.error('Embedding error details:', {
+              message: embeddingError.message,
+              stack: embeddingError.stack
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Failed to add note:', error);
@@ -205,6 +236,31 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
           variant: 'destructive',
         });
         return;
+      }
+      
+      // If title or content was updated, regenerate the embedding
+      if (updatedFields.title !== undefined || updatedFields.content !== undefined) {
+        try {
+          // Get the current note to ensure we have complete data for embedding
+          const { data: currentNote } = await supabase
+            .from('notes')
+            .select('title, content')
+            .eq('id', id)
+            .single();
+          
+          if (currentNote) {
+            const embedding = await generateNoteEmbedding({
+              title: currentNote.title,
+              content: currentNote.content || ''
+            });
+            
+            await storeNoteEmbedding(id, embedding);
+            console.log('Updated embedding for note:', id);
+          }
+        } catch (embeddingError) {
+          console.error('Error updating embedding:', embeddingError);
+          // Don't show error to user as the note was updated successfully
+        }
       }
       
       setNotes(prev =>

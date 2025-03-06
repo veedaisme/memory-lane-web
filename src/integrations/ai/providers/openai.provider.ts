@@ -27,6 +27,7 @@ export class OpenAIProvider implements AIProvider {
   
   private client: OpenAI | null = null;
   private defaultModel = 'gpt-3.5-turbo';
+  private embeddingModel = 'text-embedding-3-small';
   private model: string;
   
   constructor(config?: OpenAIConfig) {
@@ -93,6 +94,39 @@ export class OpenAIProvider implements AIProvider {
   /**
    * Send a chat completion request to OpenAI
    */
+  /**
+   * Generate an embedding vector for the provided text
+   * @param text The text to generate an embedding for
+   * @returns A normalized embedding vector
+   */
+  public async generateEmbedding(text: string): Promise<{ embedding: number[], usage?: { promptTokens?: number, totalTokens?: number } }> {
+    if (!this.isInitialized()) {
+      throw new Error('OpenAI provider not initialized. Call initialize() first.');
+    }
+    
+    try {
+      console.log('Generating embedding with model:', this.embeddingModel);
+      
+      const response = await this.client!.embeddings.create({
+        model: this.embeddingModel,
+        input: text,
+        encoding_format: 'float',
+      });
+      
+      return {
+        embedding: response.data[0].embedding,
+        usage: {
+          promptTokens: response.usage?.prompt_tokens,
+          totalTokens: response.usage?.total_tokens
+        }
+      };
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error occurred with OpenAI embeddings';
+      console.error(`OpenAI embeddings API error: ${errorMessage}`);
+      throw new Error(`OpenAI embeddings error: ${errorMessage}`);
+    }
+  }
+
   public async chatCompletion(
     messages: ChatMessage[],
     options?: AIRequestOptions

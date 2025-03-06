@@ -25,7 +25,7 @@ export const AI_CONFIG = {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
     model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini',
     organization: import.meta.env.VITE_OPENAI_ORG || undefined,
-    baseUrl: import.meta.env.VITE_OPENAI_BASE_URL || undefined,
+    baseUrl: import.meta.env.VITE_OPENAI_BASE_URL || 'https://api.openai.com/v1',
   },
   
   // Google Gemini Configuration

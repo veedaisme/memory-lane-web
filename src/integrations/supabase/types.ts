@@ -14,6 +14,7 @@ export type Database = {
           capture_mode: Database["public"]["Enums"]["CAPTURE_MODE"]
           content: string | null
           created_at: string
+          embedding: number[] | null
           id: string
           is_favorite: boolean
           location: Json | null
@@ -26,6 +27,7 @@ export type Database = {
           capture_mode?: Database["public"]["Enums"]["CAPTURE_MODE"]
           content?: string | null
           created_at?: string
+          embedding?: number[] | null
           id?: string
           is_favorite?: boolean
           location?: Json | null
@@ -38,6 +40,7 @@ export type Database = {
           capture_mode?: Database["public"]["Enums"]["CAPTURE_MODE"]
           content?: string | null
           created_at?: string
+          embedding?: number[] | null
           id?: string
           is_favorite?: boolean
           location?: Json | null

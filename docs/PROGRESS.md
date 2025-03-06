@@ -442,6 +442,48 @@ As part of our ongoing effort to reduce cognitive load for users, we've implemen
 #### Alignment with Design Principles:
 
 - **Reduced Cognitive Load**: Users no longer need to create titles manually, removing a decision point
+
+## March 6, 2025
+
+### Implemented Note Embeddings and Semantic Search
+
+We've enhanced the app with vector embeddings for notes, enabling powerful semantic search functionality that goes beyond keyword matching. This implementation allows users to find notes based on meaning and context rather than exact text matches, significantly improving content discovery.
+
+#### Implementation Details:
+
+1. **Database Integration**:
+   - Added embedding column to notes table using pgvector extension in Supabase
+   - Created a PostgreSQL function for similarity searches between embeddings
+   - Implemented efficient vector indexing for fast similarity queries
+
+2. **AI Service Integration**:
+   - Extended the AI provider interface to support embedding generation
+   - Implemented embedding generation in the OpenAI provider using text-embedding-3-small model
+   - Added automatic embedding generation on note creation and updates
+
+3. **Utility Functions**:
+   - Created dedicated embedding utilities for generating, storing, and searching embeddings
+   - Implemented similarity threshold control for flexible search precision
+   - Added asynchronous processing to avoid blocking the UI during embedding generation
+
+4. **Search Components**:
+   - Developed a SemanticSearch component for the UI
+   - Created useSemanticSearch hook for easy integration in any component
+   - Implemented results sorting by similarity score
+   - Added visual indicators for match relevance
+
+#### Technical Architecture:
+
+- **Embedding Model**: OpenAI's text-embedding-3-small (1536 dimensions)
+- **Storage**: Supabase with pgvector extension
+- **Search Algorithm**: Cosine similarity with configurable threshold
+- **Performance Optimizations**: Asynchronous processing, batched updates, and vector indexing
+
+#### Alignment with Design Principles:
+
+- **Reduced Cognitive Load**: Users can find notes based on concepts and meaning without having to remember exact keywords
+- **Accessibility as Foundation**: Enhances content discovery for all users, including those who may struggle with exact keyword recall
+- **Minimalism with Purpose**: Powerful functionality that maintains the clean, simple interface
 - **Minimalism with Purpose**: The interface remains clean while adding useful functionality
 - **Delight Through Motion**: Added subtle loading animations during title generation
 - **Accessibility as Foundation**: Maintained all accessibility features while enhancing usability
