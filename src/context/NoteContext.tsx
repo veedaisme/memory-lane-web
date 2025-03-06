@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Json } from '@/integrations/supabase/types';
+import { generateEmbeddingFromContent } from '@/utils/embeddingGenerator';
 
 export interface NoteLocation {
   latitude: number;
@@ -19,6 +20,7 @@ export interface Note {
   updatedAt: Date;
   location: NoteLocation;
   tags: string[];
+  embedding?: number[];
 }
 
 interface NoteContextType {
@@ -135,15 +137,35 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     try {
+      // Generate embedding for the note content if available
+      let embedding = null;
+      if (note.content) {
+        try {
+          embedding = await generateEmbeddingFromContent(note.content);
+          console.log('Generated embedding for new note:', embedding ? 'Success' : 'Failed');
+        } catch (embeddingError) {
+          console.error('Error generating embedding for new note:', embeddingError);
+          // Continue without embedding rather than failing the note creation
+        }
+      }
+      
+      // Create the database fields object
+      const dbFields: any = {
+        title: note.title,
+        content: note.content,
+        location: note.location as unknown as Json,
+        tags: note.tags,
+        user_id: user.id
+      };
+      
+      // Only add embedding if we successfully generated one
+      if (embedding) {
+        dbFields.embedding = embedding;
+      }
+      
       const { data, error } = await supabase
         .from('notes')
-        .insert({
-          title: note.title,
-          content: note.content,
-          location: note.location as unknown as Json,
-          tags: note.tags,
-          user_id: user.id
-        })
+        .insert(dbFields)
         .select()
         .single();
         
@@ -166,6 +188,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedAt: new Date(data.updated_at),
           location: parseLocation(data.location),
           tags: data.tags || [],
+          embedding: data.embedding || undefined,
         };
         
         setNotes(prev => [newNote, ...prev]);
@@ -191,6 +214,20 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (updatedFields.content !== undefined) dbFields.content = updatedFields.content;
       if (updatedFields.location !== undefined) dbFields.location = updatedFields.location as unknown as Json;
       if (updatedFields.tags !== undefined) dbFields.tags = updatedFields.tags;
+      
+      // Generate new embedding if content was updated
+      if (updatedFields.content) {
+        try {
+          const embedding = await generateEmbeddingFromContent(updatedFields.content);
+          if (embedding) {
+            dbFields.embedding = embedding;
+            updatedFields.embedding = embedding;
+          }
+        } catch (embeddingError) {
+          console.error('Error generating embedding for updated note:', embeddingError);
+          // Continue without updating embedding rather than failing the note update
+        }
+      }
       
       const { error } = await supabase
         .from('notes')

@@ -1,3 +1,4 @@
+
 /**
  * Application Configuration
  * 
@@ -24,6 +25,7 @@ export const AI_CONFIG = {
   openai: {
     apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
     model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini',
+    embeddingModel: import.meta.env.VITE_OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
     organization: import.meta.env.VITE_OPENAI_ORG || undefined,
     baseUrl: import.meta.env.VITE_OPENAI_BASE_URL || undefined,
   },
@@ -43,6 +45,10 @@ export const AI_DEFAULTS = {
   titleGeneration: {
     minContentLength: 75, // Minimum content length (in characters) required to generate a title
     fallbackTitle: 'Untitled Note',
+  },
+  embedding: {
+    model: 'text-embedding-3-small',
+    dimensions: 1536, // Default dimensions for text-embedding-3-small
   }
 };
 
@@ -51,6 +57,7 @@ export const FEATURES = {
   enableAITitleGeneration: import.meta.env.VITE_ENABLE_AI_TITLE_GENERATION !== "false",
   enableAITagSuggestions: import.meta.env.VITE_ENABLE_AI_TAG_SUGGESTIONS === "true",
   enableAIContentSummary: import.meta.env.VITE_ENABLE_AI_CONTENT_SUMMARY === "true",
+  enableNoteEmbeddings: import.meta.env.VITE_ENABLE_NOTE_EMBEDDINGS !== "false",
 };
 
 // Environment detection
@@ -70,7 +77,7 @@ function validateConfig() {
   }
 
   // Check for missing AI API keys if AI features are enabled
-  if (FEATURES.enableAITitleGeneration || FEATURES.enableAITagSuggestions || FEATURES.enableAIContentSummary) {
+  if (FEATURES.enableAITitleGeneration || FEATURES.enableAITagSuggestions || FEATURES.enableAIContentSummary || FEATURES.enableNoteEmbeddings) {
     if (AI_CONFIG.defaultProvider === 'openai' && !AI_CONFIG.openai.apiKey) {
       warnings.push('⚠️ OpenAI API key not found but AI features are enabled.');
     }
