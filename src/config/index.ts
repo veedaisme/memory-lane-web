@@ -43,13 +43,17 @@ export const AI_DEFAULTS = {
   titleGeneration: {
     minContentLength: 75, // Minimum content length (in characters) required to generate a title
     fallbackTitle: 'Untitled Note',
+  },
+  tagGeneration: {
+    minContentLength: 20, // Minimum content length (in characters) required to generate tags
+    maxTags: 5, // Maximum number of AI-generated tags to add
   }
 };
 
 // Feature Flags
 export const FEATURES = {
   enableAITitleGeneration: import.meta.env.VITE_ENABLE_AI_TITLE_GENERATION !== "false",
-  enableAITagSuggestions: import.meta.env.VITE_ENABLE_AI_TAG_SUGGESTIONS === "true",
+  enableAITagSuggestions: import.meta.env.VITE_ENABLE_AI_TAG_SUGGESTIONS !== "false",
   enableAIContentSummary: import.meta.env.VITE_ENABLE_AI_CONTENT_SUMMARY === "true",
 };
 

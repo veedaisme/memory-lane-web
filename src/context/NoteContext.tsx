@@ -1,10 +1,11 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Json } from '@/integrations/supabase/types';
 import { generateNoteEmbedding, storeNoteEmbedding } from '@/utils/embeddingUtils';
+import { generateTagsFromContent } from '@/utils/tagGenerator';
+import { FEATURES } from '@/config';
 
 export interface NoteLocation {
   latitude: number;
@@ -115,10 +116,12 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: parsed.name || 'Unknown Location'
         };
       } else if (typeof locationData === 'object') {
+        // Type assertion with defined interface rather than 'any'
+        const location = locationData as Record<string, unknown>;
         return {
-          latitude: (locationData as any).latitude || 0,
-          longitude: (locationData as any).longitude || 0,
-          name: (locationData as any).name || 'Unknown Location'
+          latitude: typeof location.latitude === 'number' ? location.latitude : 0,
+          longitude: typeof location.longitude === 'number' ? location.longitude : 0,
+          name: typeof location.name === 'string' ? location.name : 'Unknown Location'
         };
       }
     } catch (e) {
@@ -136,6 +139,29 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return;
     
     try {
+      // Generate AI tags if enabled (preserving user-created tags)
+      const userTags = note.tags || [];
+      let finalTags = userTags;
+      
+      console.log('Feature enabled check:', {
+        isTagSuggestionsEnabled: FEATURES.enableAITagSuggestions,
+        userProvidedTags: userTags
+      });
+      
+      try {
+        finalTags = await generateTagsFromContent(note.content, note.title, userTags);
+        console.log('Tag generation result:', {
+          contentLength: note.content.length,
+          originalTags: userTags,
+          generatedTags: finalTags,
+          tagsAdded: finalTags.length - userTags.length
+        });
+      } catch (tagError) {
+        console.error('Error generating tags:', tagError);
+        // If tag generation fails, just use the original tags
+        finalTags = userTags;
+      }
+      
       // Step 1: Create the note without embedding first
       const { data, error } = await supabase
         .from('notes')
@@ -143,7 +169,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
           title: note.title,
           content: note.content,
           location: note.location as unknown as Json,
-          tags: note.tags,
+          tags: finalTags,
           user_id: user.id
         })
         .select()
@@ -216,13 +242,88 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     try {
       // Convert from frontend model to database model
-      const dbFields: any = {};
+      const dbFields: Record<string, any> = {}; // Fix the 'any' linter error with a Record type
       
       if (updatedFields.title !== undefined) dbFields.title = updatedFields.title;
       if (updatedFields.content !== undefined) dbFields.content = updatedFields.content;
       if (updatedFields.location !== undefined) dbFields.location = updatedFields.location as unknown as Json;
-      if (updatedFields.tags !== undefined) dbFields.tags = updatedFields.tags;
       
+      // Get current note to ensure we have the complete data
+      let existingTags: string[] = [];
+      let shouldGenerateTags = updatedFields.content !== undefined || updatedFields.title !== undefined;
+      
+      if (shouldGenerateTags || updatedFields.tags !== undefined) {
+        try {
+          const { data: currentNote } = await supabase
+            .from('notes')
+            .select('title, content, tags')
+            .eq('id', id)
+            .single();
+          
+          if (currentNote) {
+            // Use updated content/title or fall back to current values
+            const contentForTags = updatedFields.content !== undefined ? 
+              updatedFields.content : currentNote.content;
+            const titleForTags = updatedFields.title !== undefined ? 
+              updatedFields.title : currentNote.title;
+            
+            // Start with either user-provided tags or existing tags
+            existingTags = updatedFields.tags !== undefined ? 
+              updatedFields.tags : (currentNote.tags || []);
+              
+            console.log('Starting tags before auto-generation:', existingTags);
+              
+            // Always generate new tags if content or title changed
+            if (shouldGenerateTags) {
+              console.log('Content/title changed, generating additional tags', {
+                isTagSuggestionsEnabled: FEATURES.enableAITagSuggestions,
+                contentUpdated: updatedFields.content !== undefined,
+                titleUpdated: updatedFields.title !== undefined,
+                userProvidedTags: updatedFields.tags !== undefined
+              });
+              
+              try {
+                // Generate new tags while preserving existing ones
+                const generatedTags = await generateTagsFromContent(
+                  contentForTags, 
+                  titleForTags, 
+                  existingTags
+                );
+                
+                dbFields.tags = generatedTags;
+                
+                console.log('Tag generation result:', {
+                  contentLength: contentForTags.length,
+                  originalTags: existingTags,
+                  generatedTags: dbFields.tags,
+                  tagsAdded: dbFields.tags.length - existingTags.length
+                });
+              } catch (tagError) {
+                console.error('Error generating tags:', tagError);
+                // If tag generation fails, use the existing tags
+                dbFields.tags = existingTags;
+              }
+            } else if (updatedFields.tags !== undefined) {
+              // If only tags were updated (no content/title change), use the provided tags
+              dbFields.tags = updatedFields.tags;
+              console.log('Using only user-provided tags (no content change):', dbFields.tags);
+            }
+          }
+        } catch (error) {
+          console.error('Error getting current note data:', error);
+          // If we can't get current note, still use any provided tags
+          if (updatedFields.tags !== undefined) {
+            dbFields.tags = updatedFields.tags;
+          }
+        }
+      }
+      
+      // Only proceed with update if there are fields to update
+      if (Object.keys(dbFields).length === 0) {
+        console.log('No fields to update');
+        return;
+      }
+
       const { error } = await supabase
         .from('notes')
         .update(dbFields)
@@ -263,10 +364,17 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
+      // Update the local state with the updated note
       setNotes(prev =>
         prev.map(note =>
           note.id === id
-            ? { ...note, ...updatedFields, updatedAt: new Date() }
+            ? { 
+                ...note, 
+                ...updatedFields,
+                // Make sure to include any newly generated tags
+                tags: dbFields.tags !== undefined ? dbFields.tags : note.tags,
+                updatedAt: new Date() 
+              }
             : note
         )
       );

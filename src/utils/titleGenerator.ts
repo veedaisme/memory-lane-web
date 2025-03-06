@@ -58,6 +58,7 @@ export async function generateTitleFromContent(content: string): Promise<string>
         content: 'You are a helpful assistant that generates concise, meaningful titles for notes. ' +
                  'Create a title that captures the essence of the note in 5-7 words maximum. ' +
                  'The title should be specific to the content, not generic. Do not use quotes around the title. ' +
+                 'Keep the title language based on the note language' +
                  'Respond with ONLY the title text and nothing else.'
       },
       {

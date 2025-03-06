@@ -88,8 +88,26 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   };
   
   const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
+    const trimmedTag = tagInput.trim();
+    if (!trimmedTag) return;
+    
+    // Check for duplicate tags (case-insensitive)
+    const tagExists = tags.some(tag => 
+      tag.toLowerCase() === trimmedTag.toLowerCase() ||
+      tag.toLowerCase().replace(/\s+/g, '') === trimmedTag.toLowerCase().replace(/\s+/g, '') ||
+      tag.toLowerCase().replace(/[-_\s]+/g, '') === trimmedTag.toLowerCase().replace(/[-_\s]+/g, '')
+    );
+    
+    if (!tagExists) {
+      setTags([...tags, trimmedTag]);
+      setTagInput('');
+    } else {
+      // Optionally show a message that the tag already exists
+      toast({
+        title: "Tag already exists",
+        description: "This tag or a similar variation already exists.",
+        variant: "default",
+      });
       setTagInput('');
     }
   };
