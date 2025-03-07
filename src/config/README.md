@@ -1,6 +1,6 @@
 # Centralized Configuration
 
-This directory contains the centralized configuration system for Thoughtscape Journal. All application configuration should be managed through this module rather than scattered across individual files.
+This directory contains the centralized configuration system for Memory Lane. All application configuration should be managed through this module rather than scattered across individual files.
 
 ## Design Principles
 
