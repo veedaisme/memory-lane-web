@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  memorylane:
+    image: iqbaaaaalf/memorylane:latest
+    container_name: memorylane
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_KEY=${VITE_SUPABASE_KEY}
+      - VITE_AI_DEFAULT_PROVIDER=${VITE_AI_DEFAULT_PROVIDER}
+      - VITE_OPENAI_API_KEY=${VITE_OPENAI_API_KEY}
+      - VITE_OPENAI_MODEL=${VITE_OPENAI_MODEL}
+      - VITE_OPENAI_BASE_URL=${VITE_OPENAI_BASE_URL}
+      - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+      - VITE_GEMINI_MODEL=${VITE_GEMINI_MODEL}
+      - VITE_ENABLE_AI_TITLE_GENERATION=${VITE_ENABLE_AI_TITLE_GENERATION}
+      - VITE_ENABLE_AI_TAG_SUGGESTIONS=${VITE_ENABLE_AI_TAG_SUGGESTIONS}
+      - VITE_ENABLE_AI_CONTENT_SUMMARY=${VITE_ENABLE_AI_CONTENT_SUMMARY}
+      - VITE_ENABLE_TEXT_FORMATTING=${VITE_ENABLE_TEXT_FORMATTING}
+    networks:
+      - memorylane-network
+
+networks:
+  memorylane-network:
+    driver: bridge 
