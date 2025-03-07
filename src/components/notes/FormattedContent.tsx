@@ -1,4 +1,5 @@
 import React from 'react';
+import { FEATURES } from '@/config';
 
 interface FormattedContentProps {
   content: string;
@@ -6,8 +7,13 @@ interface FormattedContentProps {
 }
 
 const FormattedContent: React.FC<FormattedContentProps> = ({ content, className = '' }) => {
-  // Parse and format the content
+  // Parse and format the content only if the feature is enabled
   const parseFormattedContent = (text: string): string => {
+    // If formatting is disabled, just return the plain text
+    if (!FEATURES.enableTextFormatting) {
+      return text;
+    }
+    
     // Replace markdown-style formatting with HTML
     let formattedText = text
       // Bold

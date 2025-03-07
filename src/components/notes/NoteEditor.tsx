@@ -20,6 +20,7 @@ import { Note } from '@/context/NoteContext';
 import { toast } from '@/hooks/use-toast';
 import { useDisclosure, DisclosureLevel } from '@/context/DisclosureContext';
 import { Button } from '@/components/ui/button';
+import { FEATURES } from '@/config';
 
 interface NoteEditorProps {
   initialContent: string;
@@ -494,18 +495,15 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     setContent(newContent);
   };
   
-  // Complete the renderFormattingToolbar function
+  // Update the renderFormattingToolbar function to not show anything when formatting is disabled
   const renderFormattingToolbar = () => {
-    // Only show formatting toolbar at Standard and Full disclosure levels
-    if (level === DisclosureLevel.Minimal) return null;
+    // Don't show anything if we're at Minimal level or if formatting is disabled
+    if (level === DisclosureLevel.Minimal || !FEATURES.enableTextFormatting) return null;
     
+    // Normal formatting toolbar
     return (
       <div 
-        className={`flex items-center gap-1 mb-2 p-1 rounded-md bg-memorylane-bg transition-all duration-500 ease-in-out ${
-          level !== DisclosureLevel.Minimal 
-            ? 'opacity-100'
-            : 'opacity-0 h-0 overflow-hidden'
-        }`}
+        className={`flex items-center gap-1 mb-2 p-1 rounded-md bg-memorylane-bg transition-all duration-500 ease-in-out opacity-100`}
       >
         <button
           type="button"

@@ -55,6 +55,7 @@ export const FEATURES = {
   enableAITitleGeneration: import.meta.env.VITE_ENABLE_AI_TITLE_GENERATION !== "false",
   enableAITagSuggestions: import.meta.env.VITE_ENABLE_AI_TAG_SUGGESTIONS !== "false",
   enableAIContentSummary: import.meta.env.VITE_ENABLE_AI_CONTENT_SUMMARY === "true",
+  enableTextFormatting: import.meta.env.VITE_ENABLE_TEXT_FORMATTING !== "false", // Default to enabled
 };
 
 // Environment detection
