@@ -69,10 +69,9 @@ const GraphView = () => {
       
       <NoteEditorModal 
         isOpen={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onClose={() => setIsModalOpen(false)}
         initialNote={selectedNote}
         currentLocation={currentLocation}
-        onSave={handleSaveNote}
       />
     </div>
   );
