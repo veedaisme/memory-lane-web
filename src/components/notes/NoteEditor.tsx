@@ -177,25 +177,11 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   
   // Render different components based on disclosure level
   const renderHeader = () => (
-    <div className="p-4 border-b border-memorylane-border flex items-center justify-between">
-      <button 
-        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-memorylane-border"
-        aria-label="Close"
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          if (typeof onCancel === 'function') {
-            onCancel();
-          }
-        }}
-      >
-        <X size={22} className="text-memorylane-textSecondary" />
-      </button>
-      
+    <div className="py-2 px-4 border-b border-memorylane-border flex items-center justify-end">
       <div className="flex items-center space-x-2">
         {level !== DisclosureLevel.Minimal && (
           <button 
-            className="px-4 py-2 rounded-full bg-memorylane-border text-memorylane-textSecondary font-medium text-sm"
+            className="px-4 py-1.5 rounded-full bg-memorylane-border text-memorylane-textSecondary font-medium text-sm"
             type="button"
             onClick={(e) => {
               e.preventDefault();
@@ -213,7 +199,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             e.preventDefault();
             handleSave();
           }} 
-          className="bg-memorylane-primary hover:bg-memorylane-primaryHover text-white"
+          className="bg-memorylane-primary hover:bg-memorylane-primaryHover text-white py-1.5 h-auto"
           type="button"
         >
           Save
@@ -226,7 +212,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     <div className={`transition-all duration-500 ease-in-out transform ${
       level === DisclosureLevel.Minimal 
         ? 'opacity-0 h-0 overflow-hidden translate-y-[-10px]' 
-        : 'opacity-100 h-auto mb-4 translate-y-0'
+        : 'opacity-100 h-auto mb-3 translate-y-0'
     }`}>
       <input
         type="text"
@@ -234,7 +220,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         placeholder="Add title (or leave empty for AI-generated title)"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full text-xl font-semibold bg-transparent outline-none border-none placeholder-memorylane-textTertiary"
+        className="w-full text-xl font-semibold bg-transparent outline-none border-none placeholder-memorylane-textTertiary py-1"
       />
     </div>
   );
@@ -366,7 +352,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     <div className={`flex flex-col h-full animate-fade-in relative transition-all duration-700 ease-in-out ${getBackgroundGradient()}`}>
       {renderHeader()}
       
-      <div className="flex-1 overflow-y-auto p-4 subtle-scroll">
+      <div className="flex-1 overflow-y-auto px-4 pt-2 pb-4 subtle-scroll">
         {renderTitleField()}
         
         <textarea
@@ -375,7 +361,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleContentKeyDown}
-          className="w-full min-h-[200px] text-memorylane-textPrimary text-base bg-transparent outline-none border-none resize-none placeholder-memorylane-textTertiary"
+          className="w-full min-h-[200px] text-memorylane-textPrimary text-base bg-transparent outline-none border-none resize-none placeholder-memorylane-textTertiary pt-0"
           ref={contentRef}
         />
         

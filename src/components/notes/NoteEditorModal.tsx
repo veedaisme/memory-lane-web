@@ -111,6 +111,7 @@ const NoteEditorModal: React.FC<NoteEditorModalProps> = ({
           borderRadius: '16px',
           maxHeight: 'calc(100vh - 40px)',
         }}
+        hideCloseButton={true}
       >
         <DialogTitle>
           <VisuallyHidden>
