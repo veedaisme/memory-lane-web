@@ -250,7 +250,7 @@ export const NoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Get current note to ensure we have the complete data
       let existingTags: string[] = [];
-      let shouldGenerateTags = updatedFields.content !== undefined || updatedFields.title !== undefined;
+      const shouldGenerateTags = updatedFields.content !== undefined || updatedFields.title !== undefined;
       
       if (shouldGenerateTags || updatedFields.tags !== undefined) {
         try {

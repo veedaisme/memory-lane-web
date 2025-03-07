@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { MapPin } from 'lucide-react';
 import { Note } from '@/context/NoteContext';
 import { getRelativeTimeString } from '@/utils/dateUtils';
+import FormattedContent from './FormattedContent';
 
 interface NoteCardProps {
   note: Note;
@@ -36,9 +36,10 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onClick }) => {
         </span>
       </div>
       
-      <p className="text-memorylane-textSecondary text-sm mb-3">
-        {contentPreview}
-      </p>
+      <FormattedContent 
+        content={contentPreview} 
+        className="text-memorylane-textSecondary text-sm mb-3"
+      />
       
       {location && (
         <div className="flex items-center">

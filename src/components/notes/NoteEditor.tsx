@@ -1,5 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MapPin, Tag, X, Save, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { 
+  MapPin, 
+  Tag, 
+  X, 
+  Save, 
+  ChevronDown, 
+  ChevronUp, 
+  Plus,
+  Bold,
+  Italic,
+  Underline,
+  List,
+  ListOrdered,
+  AlignLeft,
+  AlignCenter,
+  AlignRight
+} from 'lucide-react';
 import { Note } from '@/context/NoteContext';
 import { toast } from '@/hooks/use-toast';
 import { useDisclosure, DisclosureLevel } from '@/context/DisclosureContext';
@@ -27,7 +43,13 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   const [tags, setTags] = useState<string[]>(initialTags || []);
   const [tagInput, setTagInput] = useState('');
   const [location, setLocation] = useState<string | undefined>(initialLocation);
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  
+  // Formatting state
+  const [isBold, setIsBold] = useState(false);
+  const [isItalic, setIsItalic] = useState(false);
+  const [isUnderline, setIsUnderline] = useState(false);
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('left');
+  const [listType, setListType] = useState<'none' | 'bullet' | 'ordered'>('none');
   
   const { level, incrementLevel } = useDisclosure();
   const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -348,12 +370,230 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     }
   };
   
+  // Apply formatting to selected text
+  const applyFormatting = (format: 'bold' | 'italic' | 'underline') => {
+    if (!contentRef.current) return;
+    
+    const textarea = contentRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    if (start === end) {
+      // No text selected, toggle formatting state for next typing
+      switch (format) {
+        case 'bold':
+          setIsBold(!isBold);
+          break;
+        case 'italic':
+          setIsItalic(!isItalic);
+          break;
+        case 'underline':
+          setIsUnderline(!isUnderline);
+          break;
+      }
+      return;
+    }
+    
+    const selectedText = content.substring(start, end);
+    let formattedText = '';
+    
+    switch (format) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        break;
+      case 'underline':
+        formattedText = `_${selectedText}_`;
+        break;
+    }
+    
+    const newContent = content.substring(0, start) + formattedText + content.substring(end);
+    setContent(newContent);
+    
+    // Reset selection to include the formatting markers
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start, start + formattedText.length);
+    }, 0);
+  };
+  
+  // Apply text alignment
+  const applyAlignment = (align: 'left' | 'center' | 'right') => {
+    setTextAlign(align);
+    if (!contentRef.current) return;
+    
+    const textarea = contentRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Find the start and end of the current line
+    const beforeSelection = content.substring(0, start);
+    const afterSelection = content.substring(end);
+    
+    const lastNewlineBeforeIndex = beforeSelection.lastIndexOf('\n') + 1;
+    const nextNewlineAfterIndex = afterSelection.indexOf('\n');
+    const lineEndIndex = nextNewlineAfterIndex === -1 
+      ? content.length 
+      : end + nextNewlineAfterIndex;
+    
+    const currentLine = content.substring(lastNewlineBeforeIndex, lineEndIndex);
+    
+    // Remove any existing alignment markers
+    const cleanLine = currentLine.replace(/^::: (left|center|right)\n/, '').replace(/\n:::\n?$/, '');
+    
+    // Add new alignment markers
+    const alignedLine = align === 'left' 
+      ? cleanLine 
+      : `::: ${align}\n${cleanLine}\n:::`;
+    
+    const newContent = content.substring(0, lastNewlineBeforeIndex) + 
+                      alignedLine + 
+                      content.substring(lineEndIndex);
+    
+    setContent(newContent);
+  };
+  
+  // Apply list formatting
+  const applyList = (type: 'bullet' | 'ordered') => {
+    setListType(type === listType ? 'none' : type);
+    if (!contentRef.current) return;
+    
+    const textarea = contentRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    
+    // Find the start and end of the current line
+    const beforeSelection = content.substring(0, start);
+    const afterSelection = content.substring(end);
+    
+    const lastNewlineBeforeIndex = beforeSelection.lastIndexOf('\n') + 1;
+    const nextNewlineAfterIndex = afterSelection.indexOf('\n');
+    const lineEndIndex = nextNewlineAfterIndex === -1 
+      ? content.length 
+      : end + nextNewlineAfterIndex;
+    
+    const currentLine = content.substring(lastNewlineBeforeIndex, lineEndIndex);
+    
+    // Remove any existing list markers
+    const cleanLine = currentLine.replace(/^(\d+\.\s|\*\s)/, '');
+    
+    // Add new list marker if not toggling off
+    let listedLine = cleanLine;
+    if (type !== listType) {
+      listedLine = type === 'bullet' 
+        ? `* ${cleanLine}` 
+        : `1. ${cleanLine}`;
+    }
+    
+    const newContent = content.substring(0, lastNewlineBeforeIndex) + 
+                      listedLine + 
+                      content.substring(lineEndIndex);
+    
+    setContent(newContent);
+  };
+  
+  // Complete the renderFormattingToolbar function
+  const renderFormattingToolbar = () => {
+    // Only show formatting toolbar at Standard and Full disclosure levels
+    if (level === DisclosureLevel.Minimal) return null;
+    
+    return (
+      <div 
+        className={`flex items-center gap-1 mb-2 p-1 rounded-md bg-memorylane-bg transition-all duration-500 ease-in-out ${
+          level !== DisclosureLevel.Minimal 
+            ? 'opacity-100'
+            : 'opacity-0 h-0 overflow-hidden'
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => applyFormatting('bold')}
+          className={`p-1 rounded hover:bg-memorylane-border ${isBold ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Bold"
+        >
+          <Bold size={16} />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => applyFormatting('italic')}
+          className={`p-1 rounded hover:bg-memorylane-border ${isItalic ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Italic"
+        >
+          <Italic size={16} />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => applyFormatting('underline')}
+          className={`p-1 rounded hover:bg-memorylane-border ${isUnderline ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Underline"
+        >
+          <Underline size={16} />
+        </button>
+        
+        <div className="h-4 w-px bg-memorylane-border mx-1"></div>
+        
+        <button
+          type="button"
+          onClick={() => applyAlignment('left')}
+          className={`p-1 rounded hover:bg-memorylane-border ${textAlign === 'left' ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Align Left"
+        >
+          <AlignLeft size={16} />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => applyAlignment('center')}
+          className={`p-1 rounded hover:bg-memorylane-border ${textAlign === 'center' ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Align Center"
+        >
+          <AlignCenter size={16} />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => applyAlignment('right')}
+          className={`p-1 rounded hover:bg-memorylane-border ${textAlign === 'right' ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Align Right"
+        >
+          <AlignRight size={16} />
+        </button>
+        
+        <div className="h-4 w-px bg-memorylane-border mx-1"></div>
+        
+        <button
+          type="button"
+          onClick={() => applyList('bullet')}
+          className={`p-1 rounded hover:bg-memorylane-border ${listType === 'bullet' ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Bullet List"
+        >
+          <List size={16} />
+        </button>
+        
+        <button
+          type="button"
+          onClick={() => applyList('ordered')}
+          className={`p-1 rounded hover:bg-memorylane-border ${listType === 'ordered' ? 'bg-memorylane-border text-memorylane-primary' : ''}`}
+          title="Numbered List"
+        >
+          <ListOrdered size={16} />
+        </button>
+      </div>
+    );
+  };
+  
   return (
     <div className={`flex flex-col h-full animate-fade-in relative transition-all duration-700 ease-in-out ${getBackgroundGradient()}`}>
       {renderHeader()}
       
       <div className="flex-1 overflow-y-auto px-4 pt-2 pb-4 subtle-scroll">
         {renderTitleField()}
+        
+        {renderFormattingToolbar()}
         
         <textarea
           id="note-content"

@@ -24,17 +24,20 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onSelectNote }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const handleSearch = async () => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
     if (!query.trim()) return;
     
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
       const searchResults = await searchSimilarNotes(query);
       setResults(searchResults);
-    } catch (err: any) {
-      console.error('Search error:', err);
-      setError(err.message || 'An error occurred during search');
+    } catch (error: unknown) {
+      console.error('Search error:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
       setResults([]);
     } finally {
       setLoading(false);
@@ -43,7 +46,7 @@ const SemanticSearch: React.FC<SemanticSearchProps> = ({ onSelectNote }) => {
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleSearch();
+      handleSearch(e);
     }
   };
   
